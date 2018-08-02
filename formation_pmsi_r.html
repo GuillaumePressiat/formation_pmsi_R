@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Formation PMSI R</title>
+    <meta charset="utf-8">
+    <meta name="author" content="Simap / DOMU / AP-HP" />
+    <meta name="date" content="2018-08-02" />
+    <link rel="stylesheet" href="aphp.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Formation PMSI R
+### Simap / DOMU / AP-HP
+### 2018-08-02
+
+---
+
+
+
+
+
+
+
+
+class: inverse, center, middle
+
+# Introduction
+
+---
+
+# PMSI `%&gt;%` R
+
+### PMSI
+
+#### `MCO` - `SSR` - `RSF-ACE` - `Psy`
+
+#### `CCAM` - `CIM-10` - `GHM` - `GHS` - `CSARR` - `...`
+
+### R
+
+#### `dplyr &amp; tidyverse` - `magrittr` - `devtools` - `rmarkdown`
+
+---
+
+# Données PMSI avec R
+
+&lt;!-- - pmeasyr --&gt;
+&lt;!-- - requetr, api --&gt;
+&lt;!-- - nomensland --&gt;
+&lt;!-- - Oncles CIM et CCAM --&gt;
+
+&lt;a href = "mind_map.pdf"&gt;&lt;img src ="mind_map_capture.png" height = "420px"&gt;&lt;/a&gt;
+
+---
+
+# Liens utiles
+
+
+- [blog pmeasyr](https://guillaumepressiat.github.io/)
+- [aide pmeasyr](https://guillaumepressiat.github.io/miscellany/aides_pmeasyr/)
+- [Partage de méthodes PMSI](http://toudim.netlify.com/)
+- [nomensland : référentiels et méthodes](https://guillaumepressiat.github.io/nomensland)
+
+
+---
+class: inverse, center, middle
+
+# Objectif de la matinée
+
+*Mettre en forme un document utilisant les notebook et `pmeasyr`.*
+
+---
+
+
+
+class: inverse, center, middle
+
+## Première partie : `pmeasyr` &lt;br&gt; import de données et exemples de requêtes
+
+
+--- 
+*a. Installation des packages, import MCO, requêtes de base et une requête sur une ligne du recours exceptionnel, "sur le SSR c’est la même chose"*&lt;br&gt;
+*b. Stockage dans une base (monetdb par exemple), requêtes pour exemple,&lt;br&gt; import RSF-ACE pour réaliser chaînage MCO – ACE (ATU)*
+
+
+```r
+# Bascule dans RStudio
+# voir script
+partie1.R
+```
+
+---
+
+# Installer R et RStudio
+
+Pour installer R, cliquer sur les liens pour effectuer l'installation qui correspond à votre plateforme, puis installer RStudio : 
+- [R Windows](https://cran.r-project.org/bin/windows/base/), [R Mac](https://cran.r-project.org/bin/macosx/), [R Linux](https://www.digitalocean.com/community/tutorials/how-to-install-r-on-ubuntu-16-04-2)
+- [RStudio Desktop](https://www.rstudio.com/products/rstudio/download/#download)
+
+---
+
+## Installation des packages nécessaires
+
+
+```r
+install.packages('tidyverse');  install.packages('sqldf'); install.packages('MonetDBLite')
+install.packages('sjlabelled'); install.packages('DBI');   install.packages('jsonlite')
+install.packages('devtools')
+```
+
+Une fois que `tidyverse` est installé, lancer :
+
+
+```r
+devtools::install_github('IM-APHP/pmeasyr')
+devtools::install_github('GuillaumePressiat/nomensland')
+```
+
+Pour utiliser l'API de l'AP-HP depuis R : 
+
+
+```r
+devtools::install_git('http://164.1.196.52:8086/4073189/requetr.git')
+```
+
+[Lien vers l'API](http://164.1.196.52:8000/public/accueil.html)
+
+---
+
+## Mémo de la partie 1a
+
+### Données
+
+- Voir l'[arborescence des archives](https://guillaumepressiat.github.io/pmeasyr/archives.html#arborescence-des-archives) choisie
+- Lien vers l'[intranet du DIM Siège](dime.aphp.fr)
+
+### Fonctions
+
+- Dézippage archives ministérielles : [adezip](https://im-aphp.github.io/pmeasyr/reference/adezip.html)
+- Dézippage archives intranet : [adezip3](https://im-aphp.github.io/pmeasyr/reference/adezip3.html)
+- Import : [irsa](https://im-aphp.github.io/pmeasyr/reference/irsa.html), [iano_mco](https://im-aphp.github.io/pmeasyr/reference/iano_mco.html), [itra](https://im-aphp.github.io/pmeasyr/reference/itra.html), [irha](https://im-aphp.github.io/pmeasyr/reference/irha.html)
+- Requête : [requete](https://im-aphp.github.io/pmeasyr/reference/requete.html), [requete_db](https://im-aphp.github.io/pmeasyr/reference/requete_db.html)
+
+---
+
+
+## Mémo de la partie 1b
+
+### Fonctions
+
+En plus de la partie 1a : 
+
+- Import : [irafael](https://im-aphp.github.io/pmeasyr/reference/irafael.html)
+- Base de données [db_mco_out](https://im-aphp.github.io/pmeasyr/reference/db_mco_out.html), [db_rsf_out](https://im-aphp.github.io/pmeasyr/reference/db_rsf_out.html), [tbl_mco](https://im-aphp.github.io/pmeasyr/reference/tbl_mco.html), [tbl_rsf](https://im-aphp.github.io/pmeasyr/reference/tbl_rsf.html)
+
+---
+
+class: inverse, center, middle
+
+## Deuxième partie : cas pratiques, avec rmarkdown / rmdformats
+
+--- 
+*a. Installer les librairies pour rmarkdown (dont rmdformats)*&lt;br&gt;
+*b. Création d’un rmarkdown (du fichier vide au document final)*&lt;br&gt;
+*c. Mobilisation de l'API CCAM / CIM*&lt;br&gt;
+
+
+---
+
+## a. Installer les librairies
+
+
+```r
+install.packages('rmarkdown')
+devtools::install_github('GuillaumePressiat/rmdformats')
+```
+
+## b. &amp; c. 
+
+
+```r
+# Bascule dans RStudio
+# L'objectif est de créer le notebook
+partie2.Rmd / partie2.html
+# et de se familiariser avec l'API
+```
+
+
+---
+
+
+## Mémo de la partie 2
+
+### Fonctions
+
+- api ap-hp: Lien vers [requetr](http://164.1.196.52:8086/4073189/requetr.git), le package pour interfacer avec l'API, lien vers le site de l'[API](http://164.1.196.52:8000/accueil/public.html)
+- nomensland : [get_table](https://guillaumepressiat.github.io/nomensland/reference/get_table.html),
+[get_liste](https://guillaumepressiat.github.io/nomensland/reference/get_liste.html)
+
+
+---
+
+class: inverse, center, middle
+
+# jupyter
+
+--- 
+*refaire les mêmes cas pratiques au sein d'un notebook [jupyter](http://jupyter.org/)*
+
+---
+
+## Installer jupyter et un noyau R
+
+- Jupyter : http://jupyter.org/install
+- R kernel : https://irkernel.github.io/installation/
+
+
+
+
+---
+
+# à faire
+
+- archives au format intranet pour PSL ?
+- mieux spécifier les installations nécéssaires (R, RStudio) en reprenant des éléments déjà abordés dans la présentation aux DIM
+- Ajouter des liens vers les différentes documentations existantes sur le blog pmeasyr ...
+
+par exemple on peut imaginer un mémo par partie 
+- partie 0 à ajouter : où sont les archives PMSI, lien vers le pmeasyr-book
+- partie 1 avec les différentes fonctions utilisées et un lien vers l'aide de ces fonctions (irsa, db_mco_out, requete, requete_db, etc.), idem pour nomensland et requetr
+- partie 2, lien vers les fonctions utilisées, vers l'API et aussi vers les différentes aides pour découvrir ce qu'est le markdown et le rmarkdown
+
+- partie 3, ajouter un contexte autour de jupyter en parlant de python (qui peut être utilisé dans R, etc.), vers les différentes aides pour découvrir ce qu'est jupyter
+    </textarea>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"slideNumberFormat": "Diapositive %current% sur %total%"
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function() {
+  var d = document, s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})();</script>
+
+<script>
+(function() {
+  var i, text, code, codes = document.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+})();
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
