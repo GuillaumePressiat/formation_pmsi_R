@@ -1,0 +1,76 @@
+---
+title: "Untitled"
+author: "gpr"
+date: "03/08/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(printr)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+
+# Quelques utilisations de l'API PMSI du SIMAP
+
+## Lancer 3 requêtes
+
+```{r}
+# Récupérer les listes
+library(nomensland)
+liste_a <- get_liste('actes_intracerebraux_voie_stereotaxique')
+liste_b <- get_liste('reconstruction_orl_lambeaux')
+liste_c <- get_liste('m4_inca_sein')
+
+all_listes <- list(liste_a, liste_b, liste_c)
+```
+
+```{r message = FALSE, output = FALSE}
+library(pmeasyr)
+library(MonetDBLite)
+library(DBI)
+library(dplyr, warn.conflicts = F)
+dbdir <- "~/Documents/data/monetdbpsl"
+con <- src_monetdblite(dbdir)
+
+lancer_requete_db(con, 17, all_listes) %>% 
+  count(Requete)
+
+```
+
+## Lancer les requêtes M4 Inca
+
+```{r message = FALSE, output = FALSE}
+library(pmeasyr)
+library(MonetDBLite)
+library(DBI)
+library(dplyr, warn.conflicts = F)
+dbdir <- "~/Documents/data/monetdbpsl"
+con <- src_monetdblite(dbdir)
+
+all_listes <- get_all_listes('Cancérologie : Chirurgie M4 Inca')
+lancer_requete_db(con, 17, all_listes) %>% 
+  count(Requete)
+
+```
