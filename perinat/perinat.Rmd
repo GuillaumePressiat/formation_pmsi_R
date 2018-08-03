@@ -1,0 +1,563 @@
+---
+title: "Périnatalité : calculer les indicateurs avec `pmeasyr`"
+author: "Simap - DOMU -- AP-HP"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::readthedown:
+    code_folding: show
+    thumbnails: false
+    lightbox: false
+    mathjax: false
+    highlight: tango
+---
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, eval = T)
+
+dtttable <- function(x, n = 12) DT::datatable(x, extensions = 'Buttons', options = list(
+      #pageLength = nrow(df2()),
+      pageLength = n,
+      dom = 'Bfrtip',
+      buttons = c('copy', 'csv', 'excel', 'colvis')), rownames = F)
+```
+
+
+**Ce document reproduit l'algorithme présenté dans le compte-rendu du groupe de travail indicateurs  de la Fédération Française des Réseaux de Santé en Périnatalité daté du 18/09/2017. C'est cet algorithme qui est utilisé pour la publication des indicateurs de santé périnatale. **
+
+Nous présentons la définition des requêtes dans un premier temps, puis les appliquons dans R à la base de données AP-HP. Nous retrouvons les mêmes résultats que ceux du groupe de travail.
+
+Dans un dernier temps nous appliquons les trois règles permettant de distinguer la parité des accouchements selon la méthode définie par le groupe de travail (nouveaux indicateurs non publiés sur ScanSanté).
+
+La définition des requêtes ainsi que les calculs sont effectués en utilisant le package `pmeasyr`.
+
+# Définition des requêtes de l'algorithme Atih utilisé
+
+## Nombre d’accouchements totaux
+
+*Extrait document FFRSP :*
+
+Accouchements totaux = Accouchement dans l’établissement + Accouchement survenus hors établissement avec hospitalisation dans les suites immédiates
+Accouchements = Z37 en DAS ET (Acte d’accouchement  OU présence d’un code Z39.00 en DP ou DAS)  
+NB : Pour les accouchements hors établissements de santé : une correction de l’algorithme actuellement utilisé sur ScanSanté sera effectuée, car l’algorithme actuel ne tient pas compte de la présence du code Z39.00 en DAS
+Acte Accouchement voie basse (AVB) = JQGD001, JQGD002, JQGD003, JQGD004, JQGD005, JQGD007, JQGD008, JQGD010, JQGD012, JQGD013
+Césarienne : JQGA002, JQGA003, JQGA004, JQGA005
+
+Nous avons pris le Z3900 en DP également dans ce document.
+
+```{r}
+# Accouchements par voie basse
+liste_avb <- list(actes = c('JQGD001', 'JQGD002', 'JQGD003', 'JQGD004', 
+                            'JQGD005', 'JQGD007', 'JQGD008', 'JQGD010', 
+                            'JQGD012', 'JQGD013'),
+                         activite_actes = '1')
+
+# Accouchements par césarienne
+liste_cesarienne <- list(actes = c('JQGA002', 'JQGA003', 
+                                   'JQGA004', 'JQGA005'),
+                         activite_actes = '1')
+
+# Autres accouchements (pour en dehors de l'établissement)
+liste_autres <- list(diags = "Z3900", positions_diags = c(3, 5))
+
+# diagnostic d'accouchement
+liste_diagacc <- list(diags = "Z37", positions_diags = 5)
+# N.B. : Recherche des diags selon la position (1 : dp rsa, 2 : dr rsa, 3 : dpum, 4 : drum, 5 : das)
+```
+
+Nous calculerons sur la base des séjours correspondant à l'ensemble de ces requêtes :
+
+*Extrait document FFRSP :*
+
+- Âge médian de la mère (indicateur 2 sur ScanSanté)
+- Taux global de césarienne (indicateur 8) (Dénominateur : séjours accouchements DANS L’ETABLISSEMENT Numérateur : séjour d’accouchement dans l’établissement avec présence d’un acte de césarienne : Si le séjour comporte un acte de césarienne ET un acte  AVB, le séjour est classé en « césarienne »)
+
+## Accouchements multiples
+
+*Extrait document FFRSP :*
+
+Taux de grossesse multiple (indicateur 1 sur ScanSanté) :
+
+- Dénominateur : Accouchements totaux
+- Numérateur : Présence d’un code Z37 d’accouchement gémellaire ou plus que gémellaire (Z37.2, Z37.30, Z37.31, Z37.40, Z37.41, Z37.5, Z37.60, Z37.61, Z37.70, Z37.71)
+
+```{r}
+liste_multiple <- list(diags = c('Z372', 'Z3730', 'Z3731', 'Z3740', 
+                                 'Z3741', 'Z375', 'Z3760', 'Z3761', 
+                                 'Z3770','Z3771'), 
+                       positions_diags = 3:5)
+# N.B. : Recherche des diags en toutes positions (1 : dp rsa, 2 : dr rsa, 3 : dpum, 4 : drum, 5 : das)
+```
+
+## Prématurité
+
+*Extrait document FFRSP :*
+
+Taux de prématurité (indicateur 3 sur ScanSanté) :
+
+- Dénominateur : séjours enfants nés vivants : séjours de la CMD15 avec age en jour à l’entrée=0 ET mode d’entrée=8 ET DP ≠ P95
+- Numérateur : terme < 37 SA 
+
+```{r}
+liste_prematurite <- list(ghm =  '15', agejrmax = 0, 
+                          autres = "dp != 'P95' & echpmsi == '8'")
+
+# puis indicatrice prematuré si agegest < 37
+```
+
+## Épisiotomie
+
+*Extrait document FFRSP :*
+
+Taux d’AVB avec épisiotomie :
+
+- Dénominateur : AVB dans l’établissement 
+- Numérateur : AVB dans l’établissement avec présence d’un acte JMPA006
+
+Cet indicateur est décliné en taux global (ensemble des AVB dans l’établissement), et en fonction de la parité.  
+
+
+```{r}
+liste_episiotomie <- list(actes = "JMPA006")
+```
+
+La ventilation en fonction de la parité n'est pas encore faite ici.
+
+## Extraction instrumentale
+
+*Extrait document FFRSP :*
+
+Taux d’AVB avec extraction instrumentale :
+
+- Dénominateur : AVB dans l’établissement 
+- Numérateur : AVB dans l’établissement avec présence d’un acte JQGD006, JQGD009, JQGD011 OU code diagnostic : O81, O84.1, O66.5
+
+```{r}
+liste_extraction_instru_acte <- list(actes = c('JQGD006', 'JQGD009', 'JQGD011'))
+liste_extraction_instru_diag <- list(diags = c('O81', 'O841', 'O665'), 
+                                     positions_diags = c(3,4,5))
+# N.B. : Recherche des diags en toutes positions (1 : dp rsa, 2 : dr rsa, 3 : dpum, 4 : drum, 5 : das)
+```
+
+## Péridurale
+
+*Extrait document FFRSP :*
+
+Taux d’AVB avec péridurale :
+
+- Dénominateur : AVB dans l’établissement 
+- Numérateur : AVB dans l’établissement avec présence d’un acte AFLB010
+
+Cet indicateur est décliné en taux global (ensemble des AVB dans l’établissement), et en fonction de la parité.  
+
+```{r}
+liste_peridurale <- list(actes = 'AFLB010')
+```
+
+
+
+# Calculs
+
+On se connecte à la base de données et on charge les différents packages nécessaires.
+
+```{r}
+library(pmeasyr)
+library(dplyr, warn.conflicts = F)
+
+dbdir <- "~/Documents/data/monetdb"
+con <- MonetDBLite::src_monetdblite(dbdir)
+
+# Choix de l'année étudiée 
+an = 17
+```
+
+```{r}
+requete_db(con, an, 
+           liste_avb, 
+           vars = c('nohop', 'nas', 'agean')) %>% mutate(type = "avb") -> acc_avb
+
+requete_db(con, an, 
+           liste_cesarienne, 
+           vars = c('nohop', 'nas', 'agean')) %>% mutate(type = "csar")  -> acc_cesarienne
+
+requete_db(con, an, 
+           liste_autres, 
+           vars = c('nohop', 'nas', 'agean')) %>% mutate(type = "autres") -> acc_autres
+
+
+requete_db(con, an, 
+           liste_diagacc) -> acc_diag
+
+
+acc_avb %>% 
+  bind_rows(acc_cesarienne) %>% 
+  bind_rows(acc_autres) %>% 
+  group_by(nohop, cle_rsa, agean) %>% summarise(cesar = sum(type == "csar") > 0, 
+                                         avb = sum(type == "avb") > 0, 
+                                         autres = sum(type == "autres")) %>% 
+  mutate(type = avb + cesar,
+         type_fin = case_when(type == 2              ~ "Césarienne", 
+                              type == 1 & cesar == 1 ~ "Césarienne",
+                              type == 1 & avb == 1   ~ "Voie basse",
+                              autres == 1            ~ "En dehors de l'établissement")) %>% 
+  distinct(cle_rsa, nohop, agean, type_fin) %>% 
+  inner_join(acc_diag, 
+             by = 'cle_rsa') %>% 
+  ungroup() -> total_accouchements
+
+count(total_accouchements, type_fin) %>% knitr::kable()
+
+```
+
+On trouve `r nrow(total_accouchements)` accouchement au total, dont :
+
+- `r nrow(acc_avb)` avec un acte d'accouchement par voie basse
+- `r nrow(acc_cesarienne)` avec un acte d'accouchement par césarienne
+- `r nrow(acc_autres)` pour retrouver les accouchements en dehors de l'établissement
+
+
+## Nb total d'accouchements et âge médian 
+
+```{r}
+total_accouchements %>% group_by(nohop) %>% 
+  summarise(nb_acc_total = n(),
+            mediane = median(agean))  -> nb_acc_mediane
+
+nb_acc_mediane %>% knitr::kable()
+```
+
+## Grossesses multiples
+
+```{r}
+gemellaire <- requete_db(con, an, 
+                         liste_multiple) %>% 
+  mutate(gemellaire = 1)
+
+total_accouchements %>% 
+  left_join(gemellaire, by = 'cle_rsa') %>% 
+  group_by(nohop) %>% 
+  summarise(gem = sum(gemellaire, na.rm = T),
+            n = n()) %>% 
+  mutate(freq_gem = gem / n,
+         `% multiple` = scales::percent(freq_gem)) -> taux_multiple
+
+taux_multiple %>% knitr::kable()
+```
+
+## Taux de prématurité
+
+```{r}
+# taux de prématuré
+prematurite <- 
+  requete_db(con, an, liste_prematurite,
+  vars = c('nohop', 'agegest', 'dp', 'echpmsi')) %>% 
+  mutate(prematurite = agegest < 37)
+
+prematurite %>% 
+  group_by(nohop) %>% 
+  summarise(prema = sum(prematurite),
+            n = n()) %>% 
+  mutate(freq_prema = prema / n,
+         `% prématuré` = scales::percent(freq_prema)) -> taux_prema
+
+taux_prema %>% knitr::kable()
+```
+
+## Taux de césarienne
+
+```{r}
+total_accouchements %>% 
+  filter(type_fin != "En dehors de l'établissement") %>% 
+  count(nohop, type_fin) %>% 
+  tidyr::spread(type_fin, n) %>% 
+  mutate(tx_csar = `Césarienne` / (`Voie basse` + `Césarienne`),
+         `% césarienne` = scales::percent(tx_csar)) -> taux_csar
+
+taux_csar %>% knitr::kable()
+```
+
+## Taux d'extraction instrumentale
+
+```{r}
+requete_db(con, an, liste_extraction_instru_acte) -> instru_actes
+requete_db(con, an, liste_extraction_instru_diag) -> instru_diags
+
+total_accouchements %>%
+  filter(type_fin == "Voie basse") %>% 
+  left_join(distinct(bind_rows(instru_actes, 
+                               instru_diags), 
+                               cle_rsa) %>% 
+                        mutate(instru = 1), 
+                      by = 'cle_rsa')  -> instru
+
+instru %>% 
+  group_by(nohop) %>% 
+  summarise(instru = sum(instru, na.rm = T),
+            n = n()) %>% 
+  mutate(freq_instru = instru / n,
+         `% instrumentale` = scales::percent(freq_instru)) -> tx_instru
+
+tx_instru %>% knitr::kable()
+```
+
+## Taux d'épisiotomies
+
+```{r}
+requete_db(con, an, liste_episiotomie) %>% 
+  mutate(episiotomie = 1)-> episiotomie
+
+total_accouchements %>%
+  filter(type_fin == "Voie basse") %>% 
+  left_join(episiotomie, by = 'cle_rsa') -> epi
+
+epi %>% 
+  group_by(nohop) %>% 
+  summarise(epi = sum(episiotomie, na.rm = T),
+            n = n()) %>% 
+  mutate(freq_episio = epi / n,
+         `% épisiotomie` = scales::percent(freq_episio)) -> taux_epi 
+  
+taux_epi %>% knitr::kable()
+```
+
+## Taux de péridurale
+
+```{r}
+requete_db(con, an, liste_peridurale) %>% 
+  mutate(peridurale = 1) -> peridurale
+
+total_accouchements %>%
+  filter(type_fin == "Voie basse") %>% 
+  left_join(peridurale, by = 'cle_rsa') -> peridurale
+
+# taux de péridurale
+peridurale %>% 
+  group_by(nohop) %>% 
+  summarise(peridurale = sum(peridurale, na.rm = T),
+            n = n()) %>% 
+  mutate(freq_peridurale = peridurale / n,
+         `% péridurale` = scales::percent(freq_peridurale)) -> taux_peridurale
+
+taux_peridurale %>% knitr::kable()
+```
+
+
+## Statistiques rassemblées
+
+```{r}
+dtttable(list(nb_acc_mediane, 
+     taux_csar, 
+     taux_epi %>% select(- n), 
+     taux_multiple %>% select(- n), 
+     taux_peridurale %>% select(- n), 
+     taux_prema %>% select(-n)) %>%
+  purrr::reduce(left_join, by = 'nohop') %>% 
+    mutate(nohop = labelibr::labeleasier(nohop, Nohop_to_NohopLibHop = TRUE)), n = 15)
+```
+
+# Nouveaux indicateurs : parité
+
+## Effectif des doubles codage primipare + multipare
+
+On comptabilise les accouchements par boie basse classé primipare ou multipare, et sur les séjours non classés (avec les deux types, on )
+
+```{r}
+
+# nvx indicateurs sur scan sante
+
+liste_primipare <- list(
+  actes = c('JQGD002', 'JQGD003', 'JQGD004', 
+            'JQGD010', 'JQGD013')#,
+ # activite_actes = '1'
+)
+liste_multipare <- list(
+  actes = c('JQGD001', 'JQGD005', 'JQGD007', 
+            'JQGD008', 'JQGD012')#,
+  #activite_actes = '1'
+)
+
+p1 <- requete_db(con, an, liste_primipare) %>% mutate(primipare = 1)
+m1 <- requete_db(con, an, liste_multipare) %>% mutate(multipare = 1)
+
+avb <- total_accouchements %>% 
+  filter(type_fin == "Voie basse")
+
+count(avb, nohop) %>% 
+  knitr::kable()
+avt_regles <- list(avb, p1, m1) %>% 
+  purrr::reduce(left_join, by = 'cle_rsa') %>% 
+  mutate(double_codage = primipare*multipare)
+
+# Nb de double codage
+sum(avt_regles$double_codage, na.rm = T)
+
+ok_avt_regles <- avt_regles %>% 
+  filter(is.na(double_codage)) %>% 
+  mutate(type = case_when(primipare == 1 ~ "Primipare",
+                          multipare == 1 ~ "Multipare"))
+count(ok_avt_regles, type) %>% 
+  knitr::kable()
+```
+
+## Règle 1
+
+
+*Extrait document FFRSP :*
+Parité sur les AVB 
+ primipares 
+Actes : JQGD002, JQGD003, JQGD004, JQGD010, JQGD013
+multipares 
+Actes : JQGD001, JQGD005, JQGD007, JQGD008, JQGD012
+
+Avec ces codes, il existe sur 2016,  218 séjours AVB avec un double codage d’acte d’accouchement ET une incohérence sur la parité. Pour déterminer la parité dans ces cas, les règles suivantes ont été appliquées de façon successives (application de la regle 2 sur les séjours non classés par la règle 1, application de la règle 3 sur les séjours non classés par les règles 1 et 2).  
+N.B. : 218 dans la base nationale
+
+Règle 1 : utilisation de codes complémentaires de parité sur les diagnostics. 
+Primipare, si présence d’un code Z34.0, Z35.5, Z35.6 
+Multipare si présence d’un code  O34.2, O75.7, Z35.2, Z35.4, Z64.1 . 
+
+```{r}
+regle_1_primipare <- list(
+  diags = c('Z340', 'Z355', 'Z356'),
+  positions_diags = "toutes"
+)
+regle_1_multipare <- list(
+  diags = c('O342', 'O757', 'Z352', 'Z354', 'Z641'),
+  positions_diags = "toutes"
+)
+
+# Filtre sur les cas double codage
+double <- avt_regles %>% filter(double_codage == 1) %>% 
+  select(- primipare, - multipare, - double_codage)
+
+p_regle_1 <- requete_db(con, an, regle_1_primipare) %>% mutate(primipare = 1)
+m_regle_1 <- requete_db(con, an, regle_1_multipare) %>% mutate(multipare = 1)
+
+regle_1_resu <- list(double, p_regle_1, m_regle_1) %>% 
+  purrr::reduce(left_join, by = 'cle_rsa') %>% 
+  mutate(double_codage = primipare*multipare) 
+
+ok_aps_regle_1 <- regle_1_resu %>% 
+  filter(!is.na(primipare)|!is.na(multipare))  %>% 
+  mutate(type = case_when(primipare == 1 ~ "Primipare",
+                          multipare == 1 ~ "Multipare"))
+  
+```
+
+## Règle 2
+
+Règle 2 : grossesse multiple : choix d’un des deux code acte présent en utilisant l’information  « grossesse multiple » du code  Z37.-. 
+Si le code Z37 mentionne une grossesse multiple et que l’un des codes actes mentionnent également une grossesse multiple, on retient la parité de ce code acte ; 
+Si les 2 actes mentionnent une grossesse multiple : on retient arbitrairement la multiparité 
+JQGD007 > JQGD002
+
+
+```{r}
+regle_2_diag_multiple <- list(
+  diags = c('Z372', 'Z373', 'Z374', 'Z375', 'Z376', 'Z377'),
+  positions_diags = 5
+)
+
+
+# Filtre sur les cas double codage
+double <- regle_1_resu %>% filter(is.na(primipare) & is.na(multipare)) %>% 
+  select(- primipare, - multipare, - double_codage)
+
+m_regle_2 <- requete_db(con, an, regle_2_diag_multiple) %>% mutate(multiple_diag = 1)
+regle_2_resu <- list(double, m_regle_2) %>% purrr::reduce(left_join, by = 'cle_rsa')
+
+regle_2_actes_multiple <- tibble(
+  actes = c('JQGD002', 'JQGD007'),
+  hierarchie = 2:1,
+  type = c('Primipare', 'Multipare'),
+  multiple_actes = 1
+)
+
+
+test <- copy_to(con, regle_2_resu, 'regle_2', overwrite = T) %>%
+  inner_join(tbl_mco(con, an, 'rsa_actes') %>% select(cle_rsa, cdccam, act), by = 'cle_rsa') %>% 
+  collect() %>% 
+  inner_join(regle_2_actes_multiple, by = c('cdccam' = 'actes'))
+
+ok_aps_regle_2 <- test %>% 
+  mutate(!is.na(multiple_diag) & !is.na(multiple_actes)) %>% 
+  arrange(hierarchie) %>% 
+  distinct(cle_rsa, nohop, type)
+```
+
+## Règle 3
+
+Règle 3 : grossesse unique avec double codage acte incohérent sur la parité
+On utilise la hiérarchisation suivante des actes, et on retient la notion de parité sur le premier code de la hiérarchie qui apparait.
+Grande extraction siège multipare > grande extraction de siège primipare > petite extraction de siège multipare > petite extraction de siège primipare > siege multipare > siege primipare > céphalique multipare > céphalique primipare 
+JQGD005 > JQGD013 > JQGD008 > JQGD003 > JQGD001 > JQGD004 > JQGD012 > JQGD010
+
+
+```{r}
+
+double <- anti_join(double, ok_aps_regle_2, by = c('nohop', 'cle_rsa'))
+
+liste_actes_regle_3 <- tibble(
+  actes = c('JQGD005', 'JQGD013', 'JQGD008', 'JQGD003', 'JQGD001', 'JQGD004', 'JQGD012', 'JQGD010'),
+  hierarchie = 1:8,
+  type = rep(c('Multipare', 'Primipare'), 4)
+)
+
+test <- copy_to(con, double, 'regle_3', overwrite = T) %>%
+  inner_join(tbl_mco(con, an, 'rsa_actes') %>% select(cle_rsa, cdccam, act), 
+             by = 'cle_rsa') %>% collect() %>% 
+  inner_join(liste_actes_regle_3, by = c('cdccam' = 'actes'))
+
+regle_3_resu <- test %>% 
+  arrange(cle_rsa, nohop, hierarchie) %>% 
+  distinct(cle_rsa, nohop, .keep_all = T) %>% 
+  select(nohop, cle_rsa, type)
+```
+
+
+## Compilation des règles
+
+On obtient la ventilation Primipare Multipare souhaitée, à parti de laquelle on peut recalculer des taux d'épisiotomies, péridurales sur les deux sous-effectifs.
+
+```{r}
+parite <- bind_rows(ok_avt_regles, 
+                    ok_aps_regle_1, 
+                    ok_aps_regle_2, 
+                    regle_3_resu) 
+
+parite %>% 
+  select(nohop, cle_rsa, type) %>% 
+  count(type, nohop) %>% 
+  tidyr::spread(type, n)%>% knitr::kable()
+```
+
+
+## Déclinaison des taux parité
+
+Nous déclinons les taux d'épisiotomie, d'extractions instrumentale et de péridurale par parité.
+
+```{r}
+list(total_accouchements %>% filter(type_fin == "Voie basse"),
+     episiotomie,
+     distinct(bind_rows(instru_actes, instru_diags), cle_rsa, nohop) %>% mutate(instru = 1),
+     peridurale %>% select(cle_rsa, peridurale),
+     parite %>% select(cle_rsa, type)) %>% 
+  purrr::reduce(left_join, by = 'cle_rsa') -> temp
+  
+resu <- temp %>% 
+  group_by(nohop, type) %>% 
+  summarise(`Nb AVB` = n(),
+            `Nb épisio` = sum(episiotomie, na.rm = T),
+            `Nb ext. inst.` = sum(instru, na.rm = T),
+            `Nb péridurales` = sum(peridurale, na.rm = T)) %>% 
+  mutate(`% épisiotomies` = scales::percent(`Nb épisio` / `Nb AVB`),
+         `% instrumentale` = scales::percent(`Nb ext. inst.` / `Nb AVB`),
+         `% péridurale` = scales::percent(`Nb péridurales` / `Nb AVB`)) %>% 
+  ungroup()
+
+dtttable(resu %>% 
+    mutate(nohop = labelibr::labeleasier(nohop, Nohop_to_NohopLibHop = TRUE)), n = 15)
+```
+

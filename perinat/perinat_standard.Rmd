@@ -1,0 +1,287 @@
+---
+title: "Périnatalité : calculer les indicateurs idem ATIH"
+author: "Simap"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, eval = T)
+```
+
+
+### Définition des requêtes de l'algorithme Atih utilisé
+
+##### Nombre d’accouchements totaux
+
+*Extrait document Atih :*
+
+Accouchements totaux = Accouchement dans l’établissement + Accouchement survenus hors établissement avec hospitalisation dans les suites immédiates
+Accouchements = Z37 en DAS ET (Acte d’accouchement  OU présence d’un code Z39.00 en DP ou DAS)  
+NB : Pour les accouchements hors établissements de santé : une correction de l’algorithme actuellement utilisé sur ScanSanté sera effectuée, car l’algorithme actuel ne tient pas compte de la présence du code Z39.00 en DAS
+Acte Accouchement voie basse (AVB) = JQGD001, JQGD002, JQGD003, JQGD004, JQGD005, JQGD007, JQGD008, JQGD010, JQGD012, JQGD013
+Césarienne : JQGA002, JQGA003, JQGA004, JQGA005
+
+Nous avons pris le Z39 en DP également dans ce document.
+
+```{r}
+# Accouchements par voie basse
+liste_avb <- list(actes = c('JQGD001', 'JQGD002', 'JQGD003', 'JQGD004', 
+                            'JQGD005', 'JQGD007', 'JQGD008', 'JQGD010', 
+                            'JQGD012', 'JQGD013'))
+
+# Accouchements par césarienne
+liste_cesarienne <- list(actes = c('JQGA002', 'JQGA003', 
+                                   'JQGA004', 'JQGA005'))
+
+# Autres accouchements (pour en dehors de l'établissement)
+liste_autres <- list(diags = "Z39", positions_diags = c(3,5))
+
+# diagnostic d'accouchement
+liste_diagacc <- list(diags = "Z37", positions_diags = 5)
+```
+
+Nous calculerons sur la base des séjours correspondant à l'ensemble de ces requêtes :
+
+*Extrait document Atih :*
+
+- Âge médian de la mère (indicateur 2 sur ScanSanté)
+- Taux global de césarienne (indicateur 8) (Dénominateur : séjours accouchements DANS L’ETABLISSEMENT Numérateur : séjour d’accouchement dans l’établissement avec présence d’un acte de césarienne : Si le séjour comporte un acte de césarienne ET un acte  AVB, le séjour est classé en « césarienne »)
+
+##### Accouchements multiples
+
+*Extrait document Atih :*
+
+Taux de grossesse multiple (indicateur 1 sur ScanSanté) :
+- Dénominateur : Accouchements totaux
+- Numérateur : Présence d’un code Z37 d’accouchement gémellaire ou plus que gémellaire (Z37.2, Z37.30, Z37.31, Z37.40, Z37.41, Z37.5, Z37.60, Z37.61, Z37.70, Z37.71)
+
+```{r}
+liste_multiple <- list(diags = c('Z372', 'Z3730', 'Z3731', 'Z3740', 
+                                 'Z3741', 'Z375', 'Z3760', 'Z3761', 
+                                 'Z3770','Z3771'), 
+                       positions_diags = 3:5)
+```
+
+##### Prématurité
+
+*Extrait document Atih :*
+
+Taux de prématurité (indicateur 3 sur ScanSanté) :
+- Dénominateur : séjours enfants nés vivants : séjours de la CMD15 avec age en jour à l’entrée=0 ET mode d’entrée=8 ET DP ≠ P95
+- Numérateur : terme < 37 SA 
+
+```{r}
+liste_prematurite <- list(ghm =  '15', agejrmax = 0)
+
+# Puis filtre sur dp != 'P95', echpmsi == '8'
+# et indicatrice prematuré si agegest < 37
+```
+
+##### Épisiotomie
+
+*Extrait document Atih :*
+
+Taux d’AVB avec épisiotomie :
+- Dénominateur : AVB dans l’établissement 
+- Numérateur : AVB dans l’établissement avec présence d’un acte JMPA006
+
+Cet indicateur est décliné en taux global (ensemble des AVB dans l’établissement), et en fonction de la parité.  
+
+
+```{r}
+liste_episiotomie <- list(actes = "JMPA006")
+```
+
+La ventilation en fonction de la parité n'est pas encore faite ici.
+
+##### Extraction instrumentale
+
+*Extrait document Atih :*
+
+Taux d’AVB avec extraction instrumentale :
+- Dénominateur : AVB dans l’établissement 
+- Numérateur : AVB dans l’établissement avec présence d’un acte JQGD006, JQGD009, JQGD011 OU code diagnostic : O81, O84.1, O66.5
+
+```{r}
+liste_extraction_instru_acte <- list(actes = c('JQGD006', 'JQGD009', 'JQGD011'))
+liste_extraction_instru_diag <- list(diags = c('O81', 'O841', 'O665'), 
+                                     positions_diags = c(3,4,5))
+```
+
+##### Péridurale
+
+*Extrait document Atih :*
+
+Taux d’AVB avec péridurale :
+- Dénominateur : AVB dans l’établissement 
+- Numérateur : AVB dans l’établissement avec présence d’un acte AFLB010
+
+Cet indicateur est décliné en taux global (ensemble des AVB dans l’établissement), et en fonction de la parité.  
+
+```{r}
+liste_peridurale <- list(actes = 'AFLB010')
+```
+
+La ventilation en fonction de la parité n'est pas encore faite ici.
+
+### Calculs
+
+On se connecte à la base de données et on charge les différents packages nécessaires.
+
+```{r}
+library(pmeasyr)
+library(dplyr, warn.conflicts = F)
+library(requetr)
+dbdir <- "~/Documents/data/monetdb"
+con <- MonetDBLite::src_monetdblite(dbdir)
+```
+
+```{r}
+requete_db(con, 16, 
+           liste_avb, 
+           vars = c('nohop', 'nas', 'agean')) -> acc_avb
+
+requete_db(con, 16, 
+           liste_cesarienne, 
+           vars = c('nohop', 'nas', 'agean')) -> acc_cesarienne
+
+requete_db(con, 16, 
+           liste_autres, 
+           vars = c('nohop', 'nas', 'agean')) -> acc_autres
+
+
+requete_db(con, 16, 
+           liste_diagacc) -> acc_diag
+
+acc_avb %>% 
+  bind_rows(acc_cesarienne) %>% 
+  bind_rows(acc_autres) %>% 
+  distinct(cle_rsa, nohop, agean) %>% 
+  inner_join(acc_diag, 
+             by = 'cle_rsa') -> total_accouchements
+
+```
+
+
+On trouve `r nrow(total_accouchements)` accouchement au total, dont :
+
+- `r nrow(acc_avb)` avec un acte d'accouchement par voie basse
+- `r nrow(acc_cesarienne)` avec un acte d'accouchement par césarienne
+- `r nrow(acc_autres)` pour retrouver les accouchements en dehors de l'établissement
+
+
+#### Nb total d'accouchements et âge médian 
+
+```{r}
+total_accouchements %>% group_by(nohop) %>% 
+  summarise(n = n(),
+            mediane = median(agean))  %>% 
+  knitr::kable()
+```
+
+#### Grossesses multiples
+
+```{r}
+gemellaire <- requete_db(con, 16, 
+                         liste_multiple) %>% 
+  mutate(gemellaire = 1)
+
+total_accouchements %>% 
+  left_join(gemellaire, by = 'cle_rsa') %>% 
+  group_by(nohop) %>% 
+  summarise(gem = sum(gemellaire, na.rm = T),
+            n = n()) %>% 
+  mutate(freq_gem = gem / n) -> taux_multiple
+
+taux_multiple %>% knitr::kable()
+```
+
+#### Taux de prématurité
+
+```{r}
+# taux de prématuré
+prematurite <- 
+  requete_db(con, 16, liste_prematurite,
+  vars = c('nohop', 'agegest', 'dp', 'echpmsi')) %>% 
+  filter(dp != 'P95', echpmsi == '8') %>% 
+  mutate(prematurite = agegest < 37)
+
+prematurite %>% 
+  group_by(nohop) %>% 
+  summarise(prema = sum(prematurite),
+            n = n()) %>% 
+  mutate(freq_prema = prema / n) %>% 
+  knitr::kable()
+```
+
+#### Taux de césarienne
+
+```{r}
+bind_rows(acc_avb %>% mutate(type = "avb"),
+          acc_cesarienne %>%  mutate(type = "csar")) %>% 
+  inner_join(acc_diag, by = "cle_rsa") %>% 
+  group_by(nohop, cle_rsa) %>% summarise(cesar = sum(type == "csar") > 0, 
+                                         avb = sum(type == "avb") > 0) %>% 
+  mutate(type = avb + cesar,
+         type_fin = if_else(type == 2, "csar", 
+                            if_else(cesar > 0, "csar", "avb"))) %>% 
+  count(nohop, type_fin) %>% 
+  tidyr::spread(type_fin, n) %>% 
+  mutate(tx_csar = csar / (avb + csar)) %>% 
+  knitr::kable()
+```
+
+#### Taux d'extraction instrumentale
+
+```{r}
+requete_db(con, 16, liste_extraction_instru_acte) -> instru_actes
+requete_db(con, 16, liste_extraction_instru_diag) -> instru_diags
+
+acc_avb %>% left_join(distinct(bind_rows(instru_actes, 
+                                         instru_diags), 
+                               cle_rsa) %>% 
+                        mutate(instru = 1), 
+                      by = 'cle_rsa')  -> instru
+
+instru %>% 
+  group_by(nohop) %>% 
+  summarise(instru = sum(instru, na.rm = T),
+            n = n()) %>% 
+  mutate(freq_instru = instru / n)%>% 
+  knitr::kable()
+```
+
+#### Taux d'épisiotomies
+
+```{r}
+requete_db(con, 16, liste_episiotomie) %>% 
+  mutate(episiotomie = 1)-> episiotomie
+
+acc_avb %>% left_join(episiotomie, by = 'cle_rsa') -> epi
+
+epi %>% 
+  group_by(nohop) %>% 
+  summarise(epi = sum(episiotomie, na.rm = T),
+            n = n()) %>% 
+  mutate(freq_episio = epi / n) %>% 
+  knitr::kable()
+```
+
+#### Taux de péridurale
+
+```{r}
+requete_db(con, 16, liste_peridurale) %>% 
+  mutate(peridurale = 1) -> peridurale
+
+acc_avb %>% left_join(peridurale, by = 'cle_rsa') -> peridurale
+
+# taux de péridurale
+peridurale %>% 
+  group_by(nohop) %>% 
+  summarise(peridurale = sum(peridurale, na.rm = T),
+            n = n()) %>% 
+  mutate(freq_peridurale = peridurale / n)
+
+```
+

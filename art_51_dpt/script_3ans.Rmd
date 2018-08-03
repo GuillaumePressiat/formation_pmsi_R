@@ -1,0 +1,118 @@
+---
+title: "Activités chirurgicales de l'AP-HP pour art. 51"
+subtitle: "Activité 2015, 2016 et 2017"
+date: "`r Sys.Date()`"
+author: SIMAP / DOMU / AP-HP
+output:
+  rmdformats::readthedown_full_screen:
+    highlight: tango
+---
+
+
+```{r knitr_init, echo=FALSE, cache=FALSE}
+library(rmdformats)
+knitr::opts_chunk$set(echo = FALSE, warning = F, eval = T)
+
+dtttable <- function(x, n = 12) DT::datatable(x, extensions = 'Buttons', options = list(
+      #pageLength = nrow(df2()),
+      pageLength = n,
+      dom = 'Bfrtip',
+      buttons = c('copy', 'csv', 'excel', 'colvis')), rownames = F)
+```
+
+## Définition des listes d'actes chirurgicaux
+
+```{r echo = FALSE}
+
+liste_requetes = list(
+  list(nom = 'Colectomies', abrege = 'colectomie', 
+       thematique = 'Article 51',
+       actes = c(
+                'HHFA002', 'HHFA004', 'HHFA005', 'HHFA006', 
+                'HHFA009', 'HHFA014', 'HHFA017', 'HHFA018', 
+                'HHFA021', 'HHFA022', 'HHFA023', 'HHFA024', 
+                'HHFA026', 'HHFA028', 'HHFA029', 'HHFA030', 
+                'HHFA031')),
+    list(nom = 'PTH', abrege = 'pth', 
+         thematique = 'Article 51',
+         actes = c(
+              'NEKA010', 'NEKA011', 'NEKA012', 'NEKA013', 
+              'NEKA014', 'NEKA015', 'NEKA016', 'NEKA017', 
+              'NEKA018', 'NEKA019', 'NEKA020', 'NEKA021', 
+              'NELA003', 'NEMA018', 'NEMA020')),
+      list(nom = 'PTG', abrege = 'ptg', 
+           thematique = 'Article 51',
+           actes = c(
+              'NFKA006', 'NFKA007', 'NFKA008', 'NFKA009', 
+              'NFMA006', 'NFMA013')),
+      list(nom = 'Ligamentoplasties', abrege = 'ligamento', 
+           thematique = 'Article 51',
+           actes = c(
+              'NFCA001', 'NFCA002', 'NFCA003', 'NFCA004', 
+              'NFCA005', 'NFCA006', 'NFCC001', 'NFCC002', 
+              'NFMA002', 'NFMA004', 'NFMA005', 'NFMA007', 
+              'NFMA008', 'NFMA010', 'NFMA011', 'NFMC001', 
+              'NFMC002', 'NFMC003', 'NFMC004', 'NFMC005', 
+              'NFPA002', 'NFPA004', 'NFPC001'))
+)
+
+library(purrr)
+library(dplyr, warn.conflicts = FALSE)
+dtttable(
+  tibble(
+  `Chirurgie` = liste_requetes %>% 
+    purrr::map('nom') %>% 
+    unlist(),
+  `Actes CCAM` = liste_requetes %>% 
+    purrr::map('actes') %>% 
+    purrr::map(toString) %>% 
+    unlist())
+    )
+```
+
+```{r}
+library(pmeasyr)
+library(dplyr, warn.conflicts = FALSE)
+library(MonetDBLite)
+dbdir <- "~/Documents/data/monetdb"
+con <- src_monetdblite(dbdir)
+
+```
+
+## Activité AP-HP 2017
+
+
+
+```{r results = 'none', message = F,  comment=NA}
+resultat <- 15:17 %>% purrr::map(
+  function(an){
+    purrr::quietly(lancer_requete_db)(con, an, liste_requetes, vars = c('nohop', 'duree', 'typesej'))$result %>% mutate(annee = 2000 + an)
+    }
+  ) %>% bind_rows()
+
+```
+
+
+```{r}
+group_by(resultat, Requete, annee) %>% 
+  summarise(`Nombre de séjours` = n(),
+            `Durée moyenne des séjours` = round(mean(duree[duree > 0]), 1),
+            `Nombre de 0 jour` = sum(duree == 0),
+            `Journées d'hospitalisation` = sum(duree)) %>% 
+  ungroup() %>% 
+  mutate(gh     = "G00 - AP-HP",
+          nohop = "G00 - AP-HP") %>% 
+  bind_rows(
+    group_by(resultat, nohop, Requete, annee) %>% 
+  summarise(`Nombre de séjours` = n(),
+            `Durée moyenne des séjours` = round(mean(duree[duree > 0]), 1),
+            `Nombre de 0 jour` = sum(duree == 0),
+            `Journées d'hospitalisation` = sum(duree)) %>% 
+  ungroup() %>% 
+  mutate(gh    = labelibr::labeleasier(nohop, Nohop_to_NoGH_GH     = TRUE),
+          nohop = labelibr::labeleasier(nohop, Nohop_to_NohopLibHop = TRUE))) %>% 
+  select(gh, nohop, everything()) %>% 
+  dtttable(n = 20)
+```
+
+*N.B.: On trouve deux prestations inter-établissements (en 2017) qui n'ont pas été exclues parmi ces séjours, l'une est une colectomie réalisée à Ambroise Paré, l'autre une prothèse de hanche à Raymond Poincaré.*

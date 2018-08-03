@@ -46,11 +46,6 @@ class: inverse, center, middle
 
 # Données PMSI avec R
 
-&lt;!-- - pmeasyr --&gt;
-&lt;!-- - requetr, api --&gt;
-&lt;!-- - nomensland --&gt;
-&lt;!-- - Oncles CIM et CCAM --&gt;
-
 &lt;a href = "mind_map.pdf"&gt;&lt;img src ="mind_map_capture.png" height = "420px"&gt;&lt;/a&gt;
 
 ---
@@ -58,11 +53,12 @@ class: inverse, center, middle
 # Liens utiles
 
 
-- [blog pmeasyr](https://guillaumepressiat.github.io/)
-- [aide pmeasyr](https://guillaumepressiat.github.io/miscellany/aides_pmeasyr/)
-- [Partage de méthodes PMSI](http://toudim.netlify.com/)
-- [nomensland : référentiels et méthodes](https://guillaumepressiat.github.io/nomensland)
-
+- [blog pmeasyr](https://guillaumepressiat.github.io/) : Actualités et digressions
+- [manuel / book pmeasyr](https://guillaumepressiat.github.io/pmeasyr/) : Découverte pas à pas, guide pour commencer - les différentes facettes du package sont présentées
+- [aide pmeasyr](https://guillaumepressiat.github.io/miscellany/aides_pmeasyr/) : chaque fonction est référencée, des articles permettent de contextualiser l'appel des fonctions
+- [Partage de méthodes PMSI](http://toudim.netlify.com/) : deux travaux y sont actuellement proposés
+- [nomensland : référentiels et méthodes](https://guillaumepressiat.github.io/nomensland) : partager les mêmes référentiels (être au diapason), et proposer le partage de méthodes également  
+- La visualisation précédente référence d'autres liens vers des applications donnant accès à des référentiels
 
 ---
 class: inverse, center, middle
@@ -73,7 +69,13 @@ class: inverse, center, middle
 
 ---
 
+# Quelques exemples de notebook
 
+- [Indicateurs de périnatalité (markdown épuré)](perinat/perinat_standard.html)
+- [Indicateurs de périnatalité (markdown rmdformats::readthedown)](perinat/perinat.html)
+- [Requête pour des activités &gt; RAAC](art_51_dpt/Activites_chirurgicales_AP-HP_201.5.6.7_article_51.html)
+
+---
 
 class: inverse, center, middle
 
@@ -81,6 +83,7 @@ class: inverse, center, middle
 
 
 --- 
+*Installer R !*&lt;br&gt;
 *a. Installation des packages, import MCO, requêtes de base et une requête sur une ligne du recours exceptionnel, "sur le SSR c’est la même chose"*&lt;br&gt;
 *b. Stockage dans une base (monetdb par exemple), requêtes pour exemple,&lt;br&gt; import RSF-ACE pour réaliser chaînage MCO – ACE (ATU)*
 
@@ -195,7 +198,7 @@ partie2.Rmd / partie2.html
 
 ### Fonctions
 
-- api ap-hp: Lien vers [requetr](http://164.1.196.52:8086/4073189/requetr.git), le package pour interfacer avec l'API, lien vers le site de l'[API](http://164.1.196.52:8000/accueil/public.html)
+- api ap-hp: lien vers [requetr](http://164.1.196.52:8086/4073189/requetr.git), le package pour interfacer avec l'API, lien vers le site de l'[API](http://164.1.196.52:8000/accueil/public.html)
 - nomensland : [get_table](https://guillaumepressiat.github.io/nomensland/reference/get_table.html),
 [get_liste](https://guillaumepressiat.github.io/nomensland/reference/get_liste.html)
 
@@ -223,9 +226,9 @@ class: inverse, center, middle
 
 # à faire
 
-- archives au format intranet pour PSL ?
-- mieux spécifier les installations nécéssaires (R, RStudio) en reprenant des éléments déjà abordés dans la présentation aux DIM
-- Ajouter des liens vers les différentes documentations existantes sur le blog pmeasyr ...
+- archives au format intranet pour PSL ? (ok)
+- mieux spécifier les installations nécéssaires (R, RStudio) en reprenant des éléments déjà abordés dans la présentation aux DIM (ok)
+- Ajouter des liens vers les différentes documentations existantes sur le blog pmeasyr ... (ok)
 
 par exemple on peut imaginer un mémo par partie 
 - partie 0 à ajouter : où sont les archives PMSI, lien vers le pmeasyr-book
