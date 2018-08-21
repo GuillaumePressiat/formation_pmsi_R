@@ -20,9 +20,14 @@ p <- noyau_pmeasyr(
 # Dézipper le fichier rsa, le tra et le ano
 adezip(p, liste = c('rsa', 'tra', 'ano'), type = "out")
 
+# Dézipper si l'archive provient de l'intranet du DIM Siège
+adezip3(finess = '750100125', path = '~/Documents/data/mco', 'MCO_OUT_00066_201712.zip')
+adelete(p)
+
 # Importer les rsa
 rsa <- irsa(p)
 rsa
+#rsa %>% purrr::map(glimpse)
 
 # Importer le tra
 tra <- itra(p)
@@ -39,13 +44,23 @@ rsa$rsa <- rsa$rsa %>% inner_tra(tra)
 # ##################################
 
 # Compter les ptg par le GHM
-ptg <- rsa$rsa %>% 
+ptg1 <- rsa$rsa %>% 
   filter(substr(ghm, 1, 5) == '08C24')
 
 # Compter les ptg par les actes NFKA
-ptg <- rsa$actes %>% 
+ptg2 <- rsa$actes %>% 
   filter(substr(cdccam, 1, 4) == 'NFKA') %>% 
   distinct(cle_rsa)
+
+anti_join(ptg2, ptg1, by = 'cle_rsa') %>% 
+  inner_join(rsa$rsa, by = 'cle_rsa') %>% 
+  count(ghm)
+
+rsa <- irsa(p, typi = 6)
+
+rsa$rsa %>% 
+  filter(grepl('NFKA', actes)) %>% 
+  count(rghm = substr(ghm,1,5), sort = TRUE)
 
 # Combien de séjours avec dp obésité 
 obe <- rsa$rsa %>% 
@@ -58,14 +73,14 @@ rsa <- irsa(p, typi = 6)
 rsa$rsa <- rsa$rsa %>% inner_tra(tra)
 rsa_r <- prepare_rsa(rsa)
 
-requete(rsa, list(ghm = '08C24'), vars = c('ghm', 'duree', 'nas', 'norss'))
+requete(rsa_r, list(ghm = '08C24'), vars = c('ghm', 'duree', 'nas', 'norss'))
 
 nkfas <- get_table('ccam_actes') %>% 
   filter(substr(code, 1, 4) == 'NFKA') %>% 
   pull(code)
-requete(rsa, list(actes = nkfas), vars = c('ghm', 'duree', 'actes', 'um'))
+requete(rsa_r, list(actes = nkfas), vars = c('ghm', 'duree', 'actes', 'um'))
 
-requete(rsa, list(actes = nkfas), vars = c('ghm', 'duree', 'actes', 'um')) %>% 
+requete(rsa_r, list(actes = nkfas), vars = c('ghm', 'duree', 'actes', 'um')) %>% 
   count(duree < 7) %>% 
   mutate(`%` = scales::percent(n / sum(n)))
 
@@ -81,22 +96,23 @@ dl <- get_dictionnaire_listes()
 View(dl)
 bari <- get_liste("chir_bariatrique_total")
 
-requete(rsa, bari)
-requete(rsa, bari, vars = c('ghm', 'nas')) %>% 
+requete(rsa_r, bari)
+requete(rsa_r, bari, vars = c('ghm', 'nas')) %>% 
   inner_join(ano, by = 'cle_rsa') %>% 
   filter(cok) %>% 
   count(noanon, sort = TRUE)
 
 
-# #####################
-# Chirurgie bariatrique
-# #####################
+# ################################
+# Chimiothérapie intra péritonéale
+# ################################
+
 dl <- get_dictionnaire_listes()
 View(dl)
 chip <- get_liste("chip")
 
-requete(rsa, chip)
-requete(rsa, chip, vars = c('ghm', 'nas')) %>% 
+requete(rsa_r, chip)
+requete(rsa_r, chip, vars = c('ghm', 'nas')) %>% 
   inner_join(ano, by = 'cle_rsa') %>% 
   filter(cok) %>% 
   count(noanon, sort = TRUE)
@@ -109,8 +125,12 @@ requete(rsa, chip, vars = c('ghm', 'nas')) %>%
 
 adezip(p, liste = 'rss', type = "in")
 
+adezip3(finess = '750100125', path = '~/Documents/data/mco', 'MCO_IN_00066_201712.zip')
+adelete(p)
+
 # Importer les rum
 rum <- irum(p)
+
 # transposer les diagnostics
 
 rum <- tdiag(rum)
