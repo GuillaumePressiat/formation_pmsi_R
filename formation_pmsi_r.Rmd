@@ -1,7 +1,7 @@
 ---
 title: "Formation PMSI R"
 author: "Simap / DOMU / AP-HP"
-date: "2018-08-02"
+date: "2018-09-07"
 output:
   xaringan::moon_reader:
    lib_dir: libs
@@ -22,6 +22,14 @@ dtttable <- function(x, n = 12) DT::datatable(x, extensions = 'Buttons', options
       dom = 'Bfrtip',
       buttons = c('copy', 'csv', 'excel', 'colvis')), rownames = F)
 ```
+
+
+
+class: inverse, center, middle
+
+![rigologo](utiles/rigologo_pmeasyr.png)
+
+---
 
 
 class: inverse, center, middle
@@ -215,16 +223,20 @@ class: inverse, center, middle
 
 ---
 
-# à faire
+# D'autres exemples
 
-- archives au format intranet pour PSL ?
-- mieux spécifier les installations nécéssaires (R, RStudio) en reprenant des éléments déjà abordés dans la présentation aux DIM
-- Ajouter des liens vers les différentes documentations existantes sur le blog pmeasyr ...
+- Calculer un IP 
+- Valoriser des rsa
+- Travailler à l'échelle GH (rsa par GH, chainage intra-GH)
 
-par exemple on peut imaginer un mémo par partie 
-- partie 0 à ajouter : où sont les archives PMSI, lien vers le pmeasyr-book
-- partie 1 avec les différentes fonctions utilisées et un lien vers l'aide de ces fonctions (irsa, db_mco_out, requete, requete_db, etc.), idem pour nomensland et requetr
-- partie 2, lien vers les fonctions utilisées, vers l'API et aussi vers les différentes aides pour découvrir ce qu'est le markdown et le rmarkdown
 
-- partie 3, ajouter un contexte autour de jupyter en parlant de python (qui peut être utilisé dans R, etc.), vers les différentes aides pour découvrir ce qu'est jupyter
+---
+
+class: inverse, center, middle
+
+
+
+![rigologo](utiles/rigologo_pmeasyr_end.png)
+
+Merci de votre participation.
 

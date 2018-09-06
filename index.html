@@ -4,7 +4,7 @@
     <title>Formation PMSI R</title>
     <meta charset="utf-8">
     <meta name="author" content="Simap / DOMU / AP-HP" />
-    <meta name="date" content="2018-08-02" />
+    <meta name="date" content="2018-09-07" />
     <link rel="stylesheet" href="aphp.css" type="text/css" />
   </head>
   <body>
@@ -13,7 +13,7 @@ class: center, middle, inverse, title-slide
 
 # Formation PMSI R
 ### Simap / DOMU / AP-HP
-### 2018-08-02
+### 2018-09-07
 
 ---
 
@@ -22,6 +22,14 @@ class: center, middle, inverse, title-slide
 
 
 
+
+
+
+class: inverse, center, middle
+
+![rigologo](utiles/rigologo_pmeasyr.png)
+
+---
 
 
 class: inverse, center, middle
@@ -46,6 +54,11 @@ class: inverse, center, middle
 
 # Données PMSI avec R
 
+&lt;!-- - pmeasyr --&gt;
+&lt;!-- - requetr, api --&gt;
+&lt;!-- - nomensland --&gt;
+&lt;!-- - Oncles CIM et CCAM --&gt;
+
 &lt;a href = "mind_map.pdf"&gt;&lt;img src ="mind_map_capture.png" height = "420px"&gt;&lt;/a&gt;
 
 ---
@@ -53,12 +66,11 @@ class: inverse, center, middle
 # Liens utiles
 
 
-- [blog pmeasyr](https://guillaumepressiat.github.io/) : Actualités et digressions
-- [manuel / book pmeasyr](https://guillaumepressiat.github.io/pmeasyr/) : Découverte pas à pas, guide pour commencer - les différentes facettes du package sont présentées
-- [aide pmeasyr](https://guillaumepressiat.github.io/miscellany/aides_pmeasyr/) : chaque fonction est référencée, des articles permettent de contextualiser l'appel des fonctions
-- [Partage de méthodes PMSI](http://toudim.netlify.com/) : deux travaux y sont actuellement proposés
-- [nomensland : référentiels et méthodes](https://guillaumepressiat.github.io/nomensland) : partager les mêmes référentiels (être au diapason), et proposer le partage de méthodes également  
-- La visualisation précédente référence d'autres liens vers des applications donnant accès à des référentiels
+- [blog pmeasyr](https://guillaumepressiat.github.io/)
+- [aide pmeasyr](https://guillaumepressiat.github.io/miscellany/aides_pmeasyr/)
+- [Partage de méthodes PMSI](http://toudim.netlify.com/)
+- [nomensland : référentiels et méthodes](https://guillaumepressiat.github.io/nomensland)
+
 
 ---
 class: inverse, center, middle
@@ -69,13 +81,7 @@ class: inverse, center, middle
 
 ---
 
-# Quelques exemples de notebook
 
-- [Indicateurs de périnatalité (markdown épuré)](perinat/perinat_standard.html)
-- [Indicateurs de périnatalité (markdown rmdformats::readthedown)](perinat/perinat.html)
-- [Requête pour des activités &gt; RAAC](art_51_dpt/Activites_chirurgicales_AP-HP_201.5.6.7_article_51.html)
-
----
 
 class: inverse, center, middle
 
@@ -83,7 +89,6 @@ class: inverse, center, middle
 
 
 --- 
-*Installer R !*&lt;br&gt;
 *a. Installation des packages, import MCO, requêtes de base et une requête sur une ligne du recours exceptionnel, "sur le SSR c’est la même chose"*&lt;br&gt;
 *b. Stockage dans une base (monetdb par exemple), requêtes pour exemple,&lt;br&gt; import RSF-ACE pour réaliser chaînage MCO – ACE (ATU)*
 
@@ -202,12 +207,6 @@ partie2.Rmd / partie2.html
 - nomensland : [get_table](https://guillaumepressiat.github.io/nomensland/reference/get_table.html),
 [get_liste](https://guillaumepressiat.github.io/nomensland/reference/get_liste.html)
 
-### RMarkdown
-
-- 1. markdown : https://fr.wikipedia.org/wiki/Markdown
-- 2. RMarkdown : https://rmarkdown.rstudio.com/lesson-1.html
-- 3. rmdformats : https://github.com/juba/rmdformats dont nous avons adapté le thème aux couleurs de l'AP-HP ici https://github.com/GuillaumePressiat/rmdformats
-
 
 ---
 
@@ -225,24 +224,29 @@ class: inverse, center, middle
 - Jupyter : http://jupyter.org/install
 - R kernel : https://irkernel.github.io/installation/
 
-## Lancer jupyter
 
-- Dans le terminal, la console ou la "cmd", taper jupyter notebook puis entrée, c'est parti
+
 
 ---
 
-# Mémo de la partie 3
+# D'autres exemples
 
-### Docs sur jupyter : 
+- Calculer un IP 
+- Valoriser des rsa
+- Travailler à l'échelle GH (rsa par GH, chainage intra-GH)
 
-- https://fr.wikipedia.org/wiki/Jupyter
-- Fonctionnement avec python mais doc intéressante : https://medium.com/codingthesmartway-com-blog/getting-started-with-jupyter-notebook-for-python-4e7082bd5d46
 
-### Rodeo : un équivalent de RStudio pour python
+---
 
-- https://www.yhat.com/products/rodeo
+class: inverse, center, middle
+
+
+
+![rigologo](utiles/rigologo_pmeasyr_end.png)
+
+Merci de votre participation.
     </textarea>
-<script src="remark-latest.min.js"></script>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
 <script>var slideshow = remark.create({
 "slideNumberFormat": "Diapositive %current% sur %total%"
 });
@@ -275,7 +279,7 @@ if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
 })();
 </script>
 <!-- dynamically load mathjax for compatibility with self-contained -->
-<!-- <script>
+<script>
 (function () {
   var script = document.createElement('script');
   script.type = 'text/javascript';
@@ -284,6 +288,6 @@ if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
     script.src  = script.src.replace(/^https?:/, '');
   document.getElementsByTagName('head')[0].appendChild(script);
 })();
-</script> -->
+</script>
   </body>
 </html>
