@@ -193,6 +193,7 @@ partie2.Rmd / partie2.html
 ---
 
 
+
 ## Mémo de la partie 2
 
 ### Fonctions
@@ -200,6 +201,12 @@ partie2.Rmd / partie2.html
 - api ap-hp: lien vers [requetr](http://164.1.196.52:8086/4073189/requetr.git), le package pour interfacer avec l'API, lien vers le site de l'[API](http://164.1.196.52:8000/accueil/public.html)
 - nomensland : [get_table](https://guillaumepressiat.github.io/nomensland/reference/get_table.html),
 [get_liste](https://guillaumepressiat.github.io/nomensland/reference/get_liste.html)
+
+### RMarkdown
+
+- 1. markdown : https://fr.wikipedia.org/wiki/Markdown
+- 2. RMarkdown : https://rmarkdown.rstudio.com/lesson-1.html
+- 3. rmdformats : https://github.com/juba/rmdformats dont nous avons adapté le thème aux couleurs de l'AP-HP ici https://github.com/GuillaumePressiat/rmdformats
 
 
 ---
@@ -218,8 +225,23 @@ class: inverse, center, middle
 - Jupyter : http://jupyter.org/install
 - R kernel : https://irkernel.github.io/installation/
 
+## Lancer jupyter
+
+- Dans le terminal, la console ou la "cmd", taper jupyter notebook puis entrée, c'est parti
 
 
+
+---
+# Mémo de la partie 3
+
+### Docs sur jupyter : 
+
+- https://fr.wikipedia.org/wiki/Jupyter
+- Fonctionnement avec python mais doc intéressante : https://medium.com/codingthesmartway-com-blog/getting-started-with-jupyter-notebook-for-python-4e7082bd5d46
+
+### Rodeo : un équivalent de RStudio pour python
+
+- https://www.yhat.com/products/rodeo
 
 ---
 
